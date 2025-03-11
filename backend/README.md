@@ -1,7 +1,7 @@
 ## Dev Setup
 - Configure your .venv `python -m venv .venv && source .venv/bin/activate`
 - Install requirements `pip install requirements.txt`
-- Configure .env
+- Configure `.env`
 ```
 # Example Config
 JWT_SECRET_TOKEN={Generate using: openssl rand -hex 32}
