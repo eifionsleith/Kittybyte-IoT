@@ -1,6 +1,9 @@
-import jwt
 from datetime import datetime, timedelta, timezone
+from typing import Any
+
+import jwt
 from passlib.context import CryptContext
+
 from config import config
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,13 +20,13 @@ def get_password_hash(password: str) -> str:
     """
     return pwd_context.hash(password)
 
-def create_jwt(subject: str, expires_delta: timedelta) -> str:
+def create_jwt(subject: str | Any, expires_delta: timedelta) -> str:
     """
     Creates a JWT Access Token for a given subject and expiry.
     See JWT Spec for more details.
     """
     expiry = datetime.now(timezone.utc) + expires_delta
-    to_encode = {"sub": subject, "exp": expiry}
+    to_encode = {"sub": str(subject), "exp": expiry}
     encoded = jwt.encode(to_encode, config.jwt_secret_key, algorithm=config.jwt_algorithm)
     return encoded
 
