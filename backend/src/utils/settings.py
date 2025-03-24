@@ -11,6 +11,8 @@ class AppSettings(BaseSettings):
     database_url: str
     database_echo_all: bool = False
 
+    mqtt_broker_address: str
+
     class Config:
         env_file = ".env.dev"
         env_file_encoding = "utf-8"
