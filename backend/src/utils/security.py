@@ -3,7 +3,7 @@ from typing import Any
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 
-from settings import get_settings
+from utils.settings import get_settings
 
 class Security:
     _PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")

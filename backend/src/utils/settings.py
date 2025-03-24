@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 
+# TODO: Support different dotfiles, e.g. .env and .env.dev without
+#       needing to change the code, e.g. via param to main.
+
 class AppSettings(BaseSettings):
     jwt_secret: str
     jwt_algorithm: str
