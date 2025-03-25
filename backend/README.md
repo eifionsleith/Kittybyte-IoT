@@ -12,3 +12,11 @@ DATABASE_ECHO_ALL=False
 ```
 - Run using `fastapi dev src/main.py`
 - Access Swagger documentation at `localhost:8000/docs`
+
+---
+
+## MQTT Topics
+**device/{device_id}/dispense**
+**payload: "trigger"**
+To trigger the dispense function on the end device. API subject to change to add dispense quantity in payload.
+
