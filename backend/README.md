@@ -9,6 +9,7 @@ JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRY_MINUTES=30
 DATABASE_URL=sqlite:///.test.db
 DATABASE_ECHO_ALL=False
+MQTT_BROKER_ADDRESS=localhost
 ```
 - Run using `fastapi dev src/main.py`
 - Access Swagger documentation at `localhost:8000/docs`
