@@ -1,5 +1,7 @@
 Instructions from: https://core-electronics.com.au/guides/object-identify-raspberry-pi/#Set 
 
+Install files to home / desktop, as file path is specified
+
 Open Terminal:
 
 sudo apt-get update && sudo apt-get upgrade
