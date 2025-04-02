@@ -1,17 +1,18 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel
 
 
 class DeviceBase(BaseModel):
     name: Optional[str] = None
-    owner_id: Optional[int] = None
 
 class DeviceCreate(DeviceBase):
-    id: int
+    creator_id: UUID
+
+class DeviceOutput(DeviceBase):
+    id: UUID
 
 class DeviceUpdate(DeviceBase):
-    ...
-
-class DeviceDatabaseObject(DeviceBase):
-    id: int
+    name: Optional[str] = None
+    owner_id: Optional[UUID] = None
 

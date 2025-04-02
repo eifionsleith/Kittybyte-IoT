@@ -3,8 +3,7 @@ from models.device import Device
 from schema.device import DeviceCreate, DeviceUpdate
 
 
-class CRUDDevice(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
+class DeviceCRUD(CRUDBase[Device, DeviceCreate, DeviceUpdate]):
     ...
 
-device_crud_interface = CRUDDevice(Device)
-
+device_crud_interface = DeviceCRUD(Device)

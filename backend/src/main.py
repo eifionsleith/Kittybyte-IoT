@@ -1,20 +1,28 @@
 from fastapi import FastAPI
-from api.v0 import auth_router, device_router, user_router
-
+import models
+from utils.config import get_config
+from api.routes.auth import router as auth_router
+from api.routes.device import router as device_router
 from utils.database import Database
-from utils.settings import get_settings
 
 app = FastAPI()
-app.include_router(auth_router, prefix="/auth")
-app.include_router(device_router, prefix="/device")
-app.include_router(user_router, prefix="/user")
 
 @app.on_event("startup")
-def inititalize_db():
-    settings = get_settings()
-    database = Database(settings.database_url, echo=settings.database_echo_all)
-    database.initialize_database()
+def startup_event():
+    """
+    Initiaizes the config object and the database tables.
+    """
+    app.state.config = get_config()
+    Database(app.state.config.db_uri, echo=app.state.config.db_echo_all).initialize_database()
 
 @app.get("/")
-def index():
-    return {"message": "😸"}
+def default_route():
+    return {"message": "😼"}
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(device_router, prefix="/device", tags=["device"])
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+

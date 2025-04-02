@@ -1,59 +1,55 @@
-import jwt
-from typing import Any
-from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
-from utils.settings import get_settings
+import jwt
+from passlib.context import CryptContext
 
-class Security:
-    _PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    @staticmethod
-    def verify_password(plaintext_password: str, hashed_password: str) -> bool:
-        """
-        Compares a hashed and plaintext representation of a given password, returning True if they match.
+def verify_password(plaintext_password: str, hashed_password: str) -> bool:
+    """
+    Compares a hashed password and a plaintext string, and
+    returns True if they match, otherwise returns False.
 
-        Args:
-            plaintext_password (str): Plaintext representation of a password, typically user input.
-            hashed_password (str): Hashed representation of a password, typically from database.
+    Args:
+        plaintext_password (str): Plaintext represenation of a password.
+        hashed_password (str): Hashed represenation of a password.
 
-        Returns:
-            bool: True if passwords match, False otherwise.
-        """
-        return Security._PWD_CONTEXT.verify(plaintext_password, hashed_password)
+    Returns:
+        bool: True if passwords match, False otherwise.
+    """
+    return _PWD_CONTEXT.verify(plaintext_password, hashed_password)
 
-    @staticmethod
-    def get_password_hash(plaintext_password: str) -> str:
-        """
-        Takes a plaintext password, and returns a valid hashed representation.
+def get_password_hash(plaintext_password: str) -> str:
+    """
+    Takes a plaintext string, and returns a hshed represenation.
 
-        Args:
-            plaintext_password (str): Plaintext password to hash.
+    Args:
+        plaintext_password (str): String to hash.
 
-        Returns:
-            str: Hashed representation of the given password.
-        """
-        return Security._PWD_CONTEXT.hash(plaintext_password)
+    Returns:
+        str: Hash for the given string.
+    """
+    return _PWD_CONTEXT.hash(plaintext_password)
 
-    @staticmethod
-    def create_jwt(subject: str | Any, expires_delta: timedelta) -> str:
-        """
-        Creates a JWT Access Token for the given subject.
-        See the JWT spec for more details.
+def create_jwt(
+        subject: str | Any,
+        expires_delta: timedelta,
+        jwt_secret: str, 
+        jwt_algorithm: str) -> str:
+    """
+    Creates a JWT Access Token for the given subject.
+    See the JWT spec for more details.
 
-        Args:
-            subject (str): JWT sub field, identifier for the user this JWT is issued for.
-            expires_delta (timedelta): How long the JWT should be valid for.
+    Args:
+        subject (str): JWT Sub field, typically identifier for the user.
+        expires_delta (timedelta): Time for the token to remain valid.
 
-        Returns:
-            str: Encoded JWT Access Token that can be issued to the end user.
-        """
-        app_settings = get_settings()
-        jwt_secret_key = app_settings.jwt_secret
-        algorithm = app_settings.jwt_algorithm
-        expiry = datetime.now(timezone.utc) + expires_delta
-        # Note that subject must be typecasted to string, otherwise JWT cannot be decoded.
-        to_encode = {"sub": str(subject), "exp": expiry} 
-        encoded = jwt.encode(to_encode, jwt_secret_key, algorithm)
-        return encoded
+    Returns:
+        str: Encoded JWT Access Token that can be safely issued to the end user.
+    """
+    expiry = datetime.now(timezone.utc) + expires_delta
+    to_encode = { "sub": str(subject), "exp": expiry }
+    encoded = jwt.encode(to_encode, jwt_secret, jwt_algorithm)
+    return encoded
 
