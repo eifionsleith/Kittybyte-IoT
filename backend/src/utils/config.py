@@ -8,6 +8,10 @@ class AppConfig(BaseSettings):
     db_uri: str
     db_echo_all: bool = False
 
+    thingsboard_hostname: str
+    thingsboard_provision_key: str
+    thingsboard_provision_secret: str
+
     class Config:
         env_file: str = ".env.dev"
         env_file_encoding: str = "utf-8"
