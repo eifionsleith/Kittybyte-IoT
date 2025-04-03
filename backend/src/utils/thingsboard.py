@@ -1,28 +1,8 @@
 import json
 from typing import Optional
+from uuid import UUID
 import requests
 
-class ProvisioningError(Exception):
-    ...
-
-class ProvisioningNetworkError(ProvisioningError):
-    """
-    Indicates a network or HTTP error during communication'
-    with Thingsboard.
-    """
-    def __init__(self, message, status_code=None, response_text=None) -> None:
-        super().__init__(message)
-        self.status_code = status_code
-        self.response_text = response_text
-
-class ProvisioningFailedError(ProvisioningError):
-    """
-    Indicates Thingsboard responded but reported provisioning 
-    failure, typically due to conflicting identifiers.
-    """
-    def __init__(self, message, response_data):
-        super().__init__(message)
-        self.response_data = response_data
 
 class ThingsboardAPIError(Exception):
     """
@@ -47,7 +27,7 @@ class ThingsboardClient:
         headers = {"Content-Type": "application/json"}
         if requires_auth:
             if not self._jwt_token:
-                ... # login
+                self._login()
             if self._jwt_token:
                 headers["X-Authorization"] = f"Bearer: {self._jwt_token}"
             else:
@@ -79,7 +59,43 @@ class ThingsboardClient:
             response_text = e.response.text if e.response is not None else None
             raise ThingsboardAPIError(f"Login Failed: {e}", status_code=status_code, response_text=response_text) from e
 
+    def create_device(self, device_profile_id: UUID, device_name: str, label: Optional[str] = None):
+        """
+        Creates a new device in the dashboard.
+
+        Args:
+            device_profile_id (UUID): Device profile to use.
+            device_name (str): Unique name for this device.
+            label (str): Optional label for this device.
+        """
+        headers = self._get_headers(requires_auth=True)
+        endpoint = f"{self.base_url}/api/device"
+        payload = {
+                "name": device_name,
+                "label": label,
+                "deviceProfileId": {
+                    "id": device_profile_id,
+                    "entityType": "DEVICE_PROFILE"
+                    }
+                }
+
+        try:
+            response = self._session.post(endpoint, json=payload, headers=headers)
+            response.raise_for_status()
+            response_json = response.json()
+
+        except requests.exceptions.RequestException as e:
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = e.response.text if e.response is not None else None
+            raise ThingsboardAPIError(f"Device Creation Failed: {e}", status_code=status_code, response_text=response_text) from e
+
+        except json.JSONDecodeError as e:
+            raise ThingsboardAPIError(f"Device Creation Failed, Could Not Decode JSON: {e}") from e
+
+        return response_json  #! TODO: Make this a schema.
+
     def provision_device(self, device_identifier: str, provision_key: str, provision_secret: str) -> str:
+        #! TODO: This might not be correct way of provisioning devices.
         """
         Attempts to provision a device with given identifier (name) in the 
         thingsboard instance.
@@ -119,3 +135,25 @@ class ThingsboardClient:
         device_access_token = response_json["credentialsValue"]
         return device_access_token
         
+    def send_one_way_rpc(self, device_id: UUID, method: str, params: dict, persistent: bool = False, timeout: int = 5000):
+        """
+        Sends a one-way RPC request to the provided device.
+        """
+        endpoint = f"{self.base_url}/api/rpc/oneway/{device_id}"
+        payload = {
+                "method": method,
+                "params": params,
+                "persistent": persistent,
+                "timeout": timeout
+                }
+
+        try:
+            response = self._session.post(endpoint, json=payload)
+            response.raise_for_status()
+            response_json = response.json()
+
+        except requests.exceptions.RequestException as e:
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = e.response.text if e.response is not None else None
+            raise ThingsboardAPIError(f"Sending RPC Request Failed for Device: {device_id}", status_code=status_code, response_text=response_text) from e
+

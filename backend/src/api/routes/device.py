@@ -55,7 +55,7 @@ def provision_device(
                 str(device_id), 
                 config.thingsboard_provision_key, 
                 config.thingsboard_provision_secret)
-    except ThingsboardAPIError as e:
+    except ThingsboardAPIError:
         raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal Server Error, Contact Administrator")
