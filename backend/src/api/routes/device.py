@@ -63,63 +63,63 @@ def provision_device(
 
     return {"message": device_access_token}
 
-#! --> Causes Thingsboard desync... TODO: Update.
-@router.delete("/delete", response_model=bool)
-def delete_device(
-        db: Annotated[Session, Depends(get_db)],
-        current_superuser: Annotated[User, Depends(get_current_superuser)],
-        device_id: UUID) -> bool:
-    """
-    Deletes a device, by it's UUID, from the system. Only avaiable to superusers.
-    """
-    return device_crud_interface.delete(db, Device.id == device_id)
-
-@router.post("/{device_id}/unregister")
-def unregister_device_from_current_user(
-        device_id: UUID,
-        db: Annotated[Session, Depends(get_db)],
-        current_user: Annotated[User, Depends(get_user_from_jwt)]) -> bool:
-    """
-    Removes the currently authenticated user as the owner for 
-    the given device, assuming they are currently the owner.
-    """
-    device = device_crud_interface.get_one(db, Device.id == device_id)
-    if device is None:
-        raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Device with ID '{device_id}' not found.")
-    
-    if device.owner_id != current_user.id:
-        raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Current user does not have permission to do this.")
-
-    device = device_crud_interface.update(db, device, DeviceUpdate(owner_id=None))
-    return True
-#! End
-
-@router.post("/{device_id}/dispense")
-def dispense(
-        db: Annotated[Session, Depends(get_db)],
-        current_user: Annotated[User, Depends(get_user_from_jwt)],
-        dispense_amount: int,
-        device_id: int):
-    """
-    Sends a message to the device to dispense the provided amount 
-    of food, in grams.
-    """
-    device = device_crud_interface.get_one(db, Device.id == device_id)
-    if not device:
-        raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Device with ID '{device_id}' not found.")
-
-    if device.owner_id != current_user.id:
-        raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Current user does not have permission to do this.")
-
-    topic = f"device/{device.id}/dispense"
-    payload = f"qty:{dispense_amount}"
-    #! TODO: MQTT Message Handling
-
+# #! --> Causes Thingsboard desync... TODO: Update.
+# @router.delete("/delete", response_model=bool)
+# def delete_device(
+#         db: Annotated[Session, Depends(get_db)],
+#         current_superuser: Annotated[User, Depends(get_current_superuser)],
+#         device_id: UUID) -> bool:
+#     """
+#     Deletes a device, by it's UUID, from the system. Only avaiable to superusers.
+#     """
+#     return device_crud_interface.delete(db, Device.id == device_id)
+#
+# @router.post("/{device_id}/unregister")
+# def unregister_device_from_current_user(
+#         device_id: UUID,
+#         db: Annotated[Session, Depends(get_db)],
+#         current_user: Annotated[User, Depends(get_user_from_jwt)]) -> bool:
+#     """
+#     Removes the currently authenticated user as the owner for 
+#     the given device, assuming they are currently the owner.
+#     """
+#     device = device_crud_interface.get_one(db, Device.id == device_id)
+#     if device is None:
+#         raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail="Device with ID '{device_id}' not found.")
+#
+#     if device.owner_id != current_user.id:
+#         raise HTTPException(
+#                 status_code=status.HTTP_401_UNAUTHORIZED,
+#                 detail="Current user does not have permission to do this.")
+#
+#     device = device_crud_interface.update(db, device, DeviceUpdate(owner_id=None))
+#     return True
+# #! End
+#
+# @router.post("/{device_id}/dispense")
+# def dispense(
+#         db: Annotated[Session, Depends(get_db)],
+#         current_user: Annotated[User, Depends(get_user_from_jwt)],
+#         dispense_amount: int,
+#         device_id: int):
+#     """
+#     Sends a message to the device to dispense the provided amount 
+#     of food, in grams.
+#     """
+#     device = device_crud_interface.get_one(db, Device.id == device_id)
+#     if not device:
+#         raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail="Device with ID '{device_id}' not found.")
+#
+#     if device.owner_id != current_user.id:
+#         raise HTTPException(
+#                 status_code=status.HTTP_401_UNAUTHORIZED,
+#                 detail="Current user does not have permission to do this.")
+#
+#     topic = f"device/{device.id}/dispense"
+#     payload = f"qty:{dispense_amount}"
+#     #! TODO: MQTT Message Handling
+#
