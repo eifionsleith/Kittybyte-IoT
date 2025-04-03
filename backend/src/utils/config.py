@@ -11,6 +11,8 @@ class AppConfig(BaseSettings):
     thingsboard_hostname: str
     thingsboard_provision_key: str
     thingsboard_provision_secret: str
+    thingsboard_username: str
+    thingsboard_password: str
 
     class Config:
         env_file: str = ".env.dev"
