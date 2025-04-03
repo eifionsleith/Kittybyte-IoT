@@ -12,6 +12,7 @@ SUPERUSER_PASSWORD = "s3cur3"
 
 config = get_config()
 database = Database(config.db_uri, True)
+database.initialize_database()
 
 @contextmanager 
 def get_database_session(database: Database) -> Generator[Session, None, None]:
