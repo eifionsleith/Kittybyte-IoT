@@ -10,7 +10,7 @@ from models.user import User
 from schema.device import DeviceCreate, DeviceOutput, DeviceUpdate
 from crud.device import device_crud_interface
 from utils.config import AppConfig
-from utils.thingsboard import ProvisioningError, thingsboard_provision_device
+from utils.thingsboard import ThingsboardAPIError, ThingsboardClient
 
 
 router = APIRouter()
@@ -37,6 +37,7 @@ def provision_device(
     authorized user.
     """
     config: AppConfig = request.app.state.config 
+    thingsboard_client: ThingsboardClient = request.app.state.thingsboard_client
     device = device_crud_interface.get_one(db, Device.id == device_id)
 
     if device is None:
@@ -49,18 +50,17 @@ def provision_device(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Device already has owner.")
 
-    device = device_crud_interface.update(db, device, DeviceUpdate(owner_id=current_user.id))
-
     try:
-        device_access_token = thingsboard_provision_device(str(device_id), 
-                                config.thingsboard_hostname, 
-                                config.thingsboard_provision_key, 
-                                config.thingsboard_provision_secret)
-    except ProvisioningError:
+        device_access_token = thingsboard_client.provision_device(
+                str(device_id), 
+                config.thingsboard_provision_key, 
+                config.thingsboard_provision_secret)
+    except ThingsboardAPIError as e:
         raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal Server Error")
+                detail="Internal Server Error, Contact Administrator")
 
+    device = device_crud_interface.update(db, device, DeviceUpdate(owner_id=current_user.id))
     return {"message": device_access_token}
 
 # #! --> Causes Thingsboard desync... TODO: Update.

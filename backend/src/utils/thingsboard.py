@@ -61,7 +61,7 @@ class ThingsboardClient:
         if not self.username and self.password:
             raise ThingsboardAPIError("Username and password is required to log in.")
 
-        login_endpoint = f"{self.base_url}:443/api/auth/login"
+        login_endpoint = f"{self.base_url}/api/auth/login"
         credentials = {"username": self.username, "password": self.password}
 
         try:
@@ -78,62 +78,44 @@ class ThingsboardClient:
             status_code = e.response.status_code if e.response is not None else None
             response_text = e.response.text if e.response is not None else None
             raise ThingsboardAPIError(f"Login Failed: {e}", status_code=status_code, response_text=response_text) from e
-        
-##! LEGACY
-def thingsboard_provision_device(
-        device_identifier: str, 
-        thingsboard_host: str, 
-        provision_key: str,
-        provision_secret: str) -> str:
-    """
-    Attempts to provision a device in our thingsboard instance. 
 
-    Args:
-        device_identifier (str): Unique identifier for this device.
-        thingsboard_host (str): Host for our thingsboard instance.
-        provision_key (str): Provision key credentials, from thingsboard.
-        provision_secret (str): Provision secret credentials, from thingsboard.
+    def provision_device(self, device_identifier: str, provision_key: str, provision_secret: str) -> str:
+        """
+        Attempts to provision a device with given identifier (name) in the 
+        thingsboard instance.
 
-    Returns:
-        str: Device access token to be used by the provisioned device.
-    """
-    _provision_endpoint = f"http://{thingsboard_host}/api/v1/provision"
-    _provision_payload = {
-            "provisionDeviceKey": provision_key,
-            "provisionDeviceSecret": provision_secret,
-            "deviceName": device_identifier
-            }
+        Args:
+            device_identifier (str): Unique name for this device, recommend UUID.
+            provision_key (str): Credentials for the device type to provision.
+            provision_secret (str): Credentials for the device type to provision.
 
-    try:
-        response = requests.post(_provision_endpoint, json=_provision_payload)
-        response.raise_for_status()
-        provision_response = response.json()
-
-        if provision_response.get("status") == "SUCCESS" and "credentialsValue" in provision_response:
-            device_access_token = provision_response["credentialsValue"]
-            return device_access_token
-
-        else:
-            _message = f"Provisioning failed for device with identifier: {device_identifier}"
-            raise ProvisioningFailedError(_message, response_data=provision_response)
-
-    except requests.exceptions.HTTPError as e:
-        _status_code = e.response.status_code
-        _message = f"HTTP Error {_status_code} during provisioning for device with identifier: {device_identifier}."
-        _response_text = None
+        Returns:
+            str: Device access token to be used by the provisioned device during 
+                communications.
+        """
+        provision_endpoint = f"{self.base_url}/api/v1/provision"
+        provision_payload = {
+                "provisionDeviceKey": provision_key,
+                "provisionDeviceSecret": provision_secret,
+                "deviceName": device_identifier
+                }
 
         try:
-            _response_text = e.response.text
-        except Exception:
-            ...
+            response = self._session.post(provision_endpoint, json=provision_payload, timeout=10)
+            response.raise_for_status()
+            response_json = response.json()
 
-        raise ProvisioningNetworkError(_message, status_code=_status_code, response_text=_response_text) from e
+        except requests.exceptions.RequestException as e:
+            status_code = e.response.status_code if e.response is not None else None
+            response_text = e.response.text if e.response is not None else None
+            raise ThingsboardAPIError(f"Provisioning Failed: {e}", status_code=status_code, response_text=response_text) from e
 
-    except requests.exceptions.RequestException as e:
-        _message = f"Network error for device with identifier: {device_identifier}"
-        raise ProvisioningNetworkError(_message) from e 
+        except json.JSONDecodeError as e:
+            raise ThingsboardAPIError("Response recieved but could not decode JSON.")
 
-    except json.JSONDecodeError as e:
-        _message = f"Failed to decode successful JSON response from thingsboard for device with identifier: {device_identifier}"
-        raise ProvisioningError(_message) from e
+        if not (response_json.get("status") == "SUCCESS" and "credentialsValue" in response_json):
+            raise ThingsboardAPIError("Provisioning Failed")
 
+        device_access_token = response_json["credentialsValue"]
+        return device_access_token
+        

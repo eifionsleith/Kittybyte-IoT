@@ -4,6 +4,7 @@ from utils.config import get_config
 from api.routes.auth import router as auth_router
 from api.routes.device import router as device_router
 from utils.database import Database
+from utils.thingsboard import ThingsboardClient
 
 app = FastAPI()
 
@@ -13,6 +14,11 @@ def startup_event():
     Initiaizes the config object and the database tables.
     """
     app.state.config = get_config()
+    app.state.thingsboard_client = ThingsboardClient(
+            app.state.config.thingsboard_hostname,
+            username=app.state.config.thingsboard_username,
+            password=app.state.config.thingsboard_password)
+
     Database(app.state.config.db_uri, echo=app.state.config.db_echo_all).initialize_database()
 
 @app.get("/")
