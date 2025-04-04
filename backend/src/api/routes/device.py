@@ -22,7 +22,7 @@ def create_device(
     """
     Creates a new device in the system, only avaiable to superusers.
     """
-    device_create = DeviceCreate(creator_id=current_superuser.id)
+    device_create = DeviceCreate()
     device = device_crud_interface.create(db, device_create)
     return device
 
