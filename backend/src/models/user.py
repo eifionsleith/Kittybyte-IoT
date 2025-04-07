@@ -1,23 +1,19 @@
-import uuid
-from sqlalchemy import UUID, Boolean, Column, String # pyright: ignore
-from sqlalchemy.orm import relationship
-from utils.database import Base
+from sqlalchemy import Boolean, String
+from sqlalchemy.orm import mapped_column, relationship, Mapped
+from models.base import BaseDatabaseModel
 
-class User(Base):
+
+class User(BaseDatabaseModel):
     __tablename__ = "users"
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    is_superuser = Column(Boolean)
+    
+    #! Operational Data
+    email: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    username: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    #! Relationships
+    owned_devices = relationship("Device", back_populates="owner")
 
-    owned_devices = relationship(
-        "Device", 
-        back_populates="owner", 
-        foreign_keys="[Device.owner_id]" 
-    )
+from models.device import Device  # This is necessary.
 
-    created_devices = relationship(
-        "Device", 
-        back_populates="creator", 
-        foreign_keys="[Device.creator_id]" 
-    )
