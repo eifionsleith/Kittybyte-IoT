@@ -50,3 +50,4 @@ class ThingsboardUtils:
             raise ThingsboardNotFoundException("Device not found in Thingsboard")
     
         return UUID(device.id._id)
+

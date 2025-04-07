@@ -77,3 +77,27 @@ def provision_device(db: Annotated[Session, Depends(get_db)],
 
     return credentials
 
+##! TODO: Work in progress!
+@router.post("/{device_id}/dispense")
+def dispense(db: Annotated[Session, Depends(get_db)],
+             current_user: Annotated[User, Depends(get_current_user)],
+             thingsboard_client: Annotated[RestClientCE, Depends(get_thingsboard_client)],
+             device_id: UUID,
+             dispense_amount: int):
+    """
+    Sends a MQTT message triggering a dispense action on the device,
+    assuming the authenticated user is the device's owner.
+    """
+
+    device = device_crud_interface.get_by_id(db, device_id)
+    thingsboard_device_id = device.thingsboard_id
+    dispense_command = {
+            "method": "dispense",
+            "params": {
+                "amount": dispense_amount
+                }
+            }
+    print("Trying to send request...")
+    response = thingsboard_client.handle_two_way_device_rpc_request(str(thingsboard_device_id), dispense_command)
+    print(response)
+
