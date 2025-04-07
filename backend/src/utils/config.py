@@ -1,35 +1,55 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class DatabaseSettings(BaseModel):
+    uri: str
+    echo_all: bool = False
+
+class JWTSettings(BaseModel):
+    secret: str
+    algorithm: str = "HS256"
+    expiry_minutes: int = 30
+
+class ProvisioningSettings(BaseModel):
+    key: str
+    secret: str
+
+class ThingsboardSettings(BaseModel):
+    host: str
+    username: str
+    password: str
+    provisioning: ProvisioningSettings
 
 class AppConfig(BaseSettings):
-    jwt_secret: str
-    jwt_algorithm: str = "HS256"
-    jwt_expiry_minutes: int = 30
+    db: DatabaseSettings
+    jwt: JWTSettings
+    thingsboard: ThingsboardSettings
 
-    db_uri: str
-    db_echo_all: bool = False
+    model_config = SettingsConfigDict(
+            env_file=".env",
+            env_file_encoding="utf-8",
+            env_nested_delimiter="_",
+            case_sensitive=False
+    )
 
-    thingsboard_hostname: str
-    thingsboard_provision_key: str
-    thingsboard_provision_secret: str
-
-    class Config:
-        env_file: str = ".env.dev"
-        env_file_encoding: str = "utf-8"
-
-def get_config(
-        env_file: str = ".env.dev", 
-        env_file_encoding: str = "utf-8") -> AppConfig:
+def get_config(env_file: str = ".env",
+               env_file_encoding: str = "utf-8") -> AppConfig:
     """
-    Gets the environment variables object using the provided
-    input dotfile, this is mostly a workaround for LSPs.
+    Creates an instance of AppConfig using the settings from the provided .env file.
 
+    Improves LSP support.
+    
     Args:
-        env_file (str): Path to the environment variable file.
+        env_file (str): Path to the dotenv environment variables file.
             Defaults to ".env"
-        env_file_encoding (str): Optional encoding format, as str.
+        env_file_encoding (str): Optional encoding format.
             Defaults to "utf-8"
+
     Returns:
-        AppConfig: Object containing the environment variables.
+        AppConfig: Initialized instance of AppConfig.
     """
-    return AppConfig(_env_file=env_file, _env_file_encoding=env_file_encoding) # pyright: ignore[reportCallIssue]
+    try:
+        return AppConfig(_env_file=env_file, _env_file_encoding=env_file_encoding) # pyright: ignore[reportCallIssue]
+    except ValidationError as e:
+        raise SystemExit("Configuration error, cannot start application. Please review .env file.") from e
 

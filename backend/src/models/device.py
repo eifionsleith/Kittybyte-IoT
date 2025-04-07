@@ -1,16 +1,25 @@
-import uuid
-from sqlalchemy import UUID, Column, ForeignKey, String # pyright: ignore
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from uuid import UUID as _UUID
+from sqlalchemy import UUID, DateTime, ForeignKey, String
+from sqlalchemy.orm import mapped_column, relationship, Mapped
+from models.base import BaseDatabaseModel
 from models.user import User
-from utils.database import Base
 
 
-class Device(Base):
+class Device(BaseDatabaseModel):
     __tablename__ = "devices"
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    owner_id = Column(UUID(as_uuid=True), ForeignKey(User.id), index=True)
-    creator_id = Column(UUID(as_uuid=True), ForeignKey(User.id), index=True)
-    name = Column(String(255))
-    owner = relationship("User", back_populates="owned_devices", foreign_keys=owner_id)
-    creator = relationship("User", back_populates="created_devices", foreign_keys=creator_id)
+
+    #! IDs
+    thingsboard_id: Mapped[_UUID] = mapped_column(UUID(as_uuid=True), index=True, unique=True, nullable=True)
+
+    #! Timestamps
+    provisioned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    #! Operational Data
+    owner_id: Mapped[_UUID] = mapped_column(UUID(as_uuid=True), ForeignKey(User.id), index=True, nullable=True)
+    name: Mapped[str] = mapped_column(String(64), nullable=True)
+
+    #! Relationships
+    owner = relationship("User", back_populates="owned_devices")
 
