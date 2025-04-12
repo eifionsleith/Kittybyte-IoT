@@ -1,8 +1,9 @@
 import time
-from typing import Optional, List
+from typing import Optional
 from serial import Serial, SerialException
 
 from .commands import ArduinoCommand
+from .protocol import Protocol
 
 class ArduinoController:
     """Controller for serial communication with the Arduino"""
@@ -32,7 +33,7 @@ class ArduinoController:
             bool: True if successful.
         """
         try:
-            self._connection = Serial(self._port, self._rate, self._timeout)
+            self._connection = Serial(self._port, self._rate, timeout=self._timeout)
             time.sleep(2)
             return True
         except SerialException as e:
@@ -62,42 +63,39 @@ class ArduinoController:
         if not self._connection or not self._connection.is_open:
             print("Error: Not connected to Arduino")
             return False
-
+        
         try:
-            str_command = f"{command.to_serial_string()}\n"
-            self._connection.write(str_command.encode("utf-8"))
-            print(f"Sent command: {command}")
-            return True
+            binary_command = command.encode()
+            self._connection.reset_input_buffer()
+            self._connection.write(binary_command)
+            self._connection.flush()
+            return self._wait_for_ok()
         except SerialException as e:
             print(f"Error sending command: {e}")
             return False
 
-    def read_response(self, timeout: float = 5.0) -> List[str]:
+    def _wait_for_ok(self) -> bool:
         """
-        Read response from Arduino.
-
-        Args:
-            timeout (float): Maximum time to wait for responses in seconds, defaults to 5.0
+        Waits for MSG_OK response from Arduino, indicating acknowledgement of command.
 
         Returns:
-            List[str]: List of responses from Arduino
+            bool: True if acknowledged, False on timeout or error
         """
         if not self._connection or not self._connection.is_open:
-            print("Error: Not connected to Arduino.")
-            return []
+            print("Error: Not connected to Arduino")
+            return False
 
-        responses = []
-        end_time = time.time() + timeout
+        start_time = time.time()
 
-        while time.time() < end_time:
+        while time.time() - start_time < self._timeout:
             if self._connection.in_waiting:
-                line = self._connection.readline().decode("utf-8").strip()
-                if line:
-                    responses.append(line)
-            else:
-                time.sleep(0.1)
+                response = self._connection.read(1)
+                if response and response[0] == Protocol.MSG_OK:
+                    return True
 
-        return responses
+            time.sleep(0.01)
+
+        return False
 
     def __enter__(self):
         self.connect()

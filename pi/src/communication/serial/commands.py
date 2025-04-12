@@ -1,13 +1,40 @@
+import struct
 from abc import ABC, abstractmethod 
 from dataclasses import dataclass
+
+from .protocol import Protocol
 
 class ArduinoCommand(ABC):
     """Base class for all Arduino commands."""
     
+    @staticmethod
+    def _get_checksum(packet: bytearray):
+        """Creates a checksum byte for the packet."""
+        checksum = 0
+        for b in packet:
+            checksum ^= b 
+        return checksum
+
     @abstractmethod 
-    def to_serial_string(self) -> str:
-        """Convert the command to a string to send over serial."""
+    def get_command_id(self) -> int:
+        """Get the command ID byte."""
         ...
+
+    @abstractmethod 
+    def get_payload(self) -> bytes:
+        """Gets the binary payload for this command."""
+        ...
+
+    def encode(self) -> bytes:
+        """Encode the command into a complete binary packet."""
+        command_id = self.get_command_id()
+        payload = self.get_payload()
+
+        header = bytes([Protocol.START_BYTE, command_id, len(payload)])
+        packet = bytearray(header + payload)
+        packet.append(self._get_checksum(packet))
+        return bytes(packet)
+        
 
 @dataclass
 class DispenseCommand(ArduinoCommand):
@@ -18,8 +45,11 @@ class DispenseCommand(ArduinoCommand):
         if self.quantity < 1:
             raise ValueError("Dispense quantity must be at least 1")
 
-    def to_serial_string(self) -> str:
-        return f"dispense {self.quantity}"
+    def get_command_id(self) -> int:
+        return Protocol.CMD_DISPENSE
+
+    def get_payload(self) -> bytes:
+        return bytes([Protocol.TYPE_UINT16]) + struct.pack('<H', self.quantity)
 
 @dataclass 
 class BuzzCommand(ArduinoCommand):
@@ -33,6 +63,11 @@ class BuzzCommand(ArduinoCommand):
         if self.frequency < 1:
             raise ValueError("Frequency must be positive.")
 
-    def to_serial_string(self) -> str:
-        return f"buzz {self.duration_ms} {self.frequency}"
+    def get_command_id(self) -> int:
+        return Protocol.CMD_BUZZ
+
+    def get_payload(self) -> bytes:
+        bytes_frequency = bytes([Protocol.TYPE_UINT16]) + struct.pack('<H', self.frequency)
+        bytes_duration = bytes([Protocol.TYPE_UINT16]) + struct.pack('<H', self.duration_ms)
+        return bytes_frequency + bytes_duration
 
