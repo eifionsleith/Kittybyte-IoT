@@ -1,59 +1,44 @@
-#include <Servo.h>
+#include "Serial.h"
+#include "Buzzer.h"
+#define MSG_OK 0x06
+#define CMD_BUZZ 0xA1
+#define TYPE_UINT16 0x01
 
-Servo myservo;
-constexpr int servoPin = 5;
-constexpr int buzzerPin = 4;
+#define BUZZER_PIN 6
 
+PacketBuffer gPacketBuffer;
+Buzzer gBuzzer(BUZZER_PIN);
 
-void triggerServo() {
-  myservo.write(1);
-  delay(3000);
-  myservo.write(180);
-  Serial.println("Dispense action completed");
-}
+void fnExecuteCommand(PacketBuffer* pb) {
+  byte commandID = pb->ayBuffer[1];
+  byte* payload = &(pb->ayBuffer[3]);
+  byte payloadIndex = 0;
 
-void f_PlayTone(int tone, int duration) {
-  for (long i = 0; i < duration * 1000L; i+= tone * 2) {
-    digitalWrite(buzzerPin, HIGH);
-    delayMicroseconds(tone);
-    digitalWrite(buzzerPin, LOW);
-    delayMicroseconds(tone);
+  switch (commandID) {
+    case CMD_BUZZ: {
+                     if (payload[payloadIndex++] == TYPE_UINT16) {
+                       uint16_t frequency = *((uint16_t*)(payload + payloadIndex));
+                       payloadIndex += 1 + sizeof(uint16_t);
+                       uint16_t duration = *((uint16_t*)(payload + payloadIndex));
+                       payloadIndex += 1 + sizeof(uint16_t);
+
+                       gBuzzer.playTone(frequency, duration);
+                     }
+                     break;
+                   }
   }
-}
-
-void triggerBuzzer() {
-  /* Play a little song */
-  constexpr int notes[] = { 261, 329, 523, 493, 392 };
-  for (int i = 0; i < 5; ++i) {
-    f_PlayTone(notes[i], 200);
-  }
-
-  Serial.println("Buzzer completed");
 }
 
 void setup() {
-  myservo.attach(servoPin);
-  myservo.write(0);
-
-  pinMode(buzzerPin, OUTPUT);
-  digitalWrite(buzzerPin, LOW); // buzzer off
-
+  fnInitPacketBuffer(&gPacketBuffer);
+  gBuzzer.begin();
   Serial.begin(9600);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-
-    String command = Serial.readStringUntil('\n');
-    command.trim();
-
-    if (command.equalsIgnoreCase("dispense")) {
-      triggerServo();
-    } else if (command.equalsIgnoreCase("buzz")) {
-      triggerBuzzer();
-    } else {
-      Serial.println("Unknown command");
-    }
+  if (fnRecievePacket(&gPacketBuffer)) {
+    Serial.write(MSG_OK);
+    fnExecuteCommand(&gPacketBuffer);
+    // Acknowledge successful packet read.
   }
 }
-
