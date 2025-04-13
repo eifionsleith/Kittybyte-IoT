@@ -1,10 +1,14 @@
 import time
-from communication.serial.arduino_controller import ArduinoController
-from communication.serial.commands import BuzzCommand
+from communication.mqtt.mqtt_client import MQTTClient
 
-# Example serial communication:
-with ArduinoController(port="/dev/ttyACM0") as arduino:
-    arduino.send_command(BuzzCommand(duration_ms=1000, frequency=1000))
-    time.sleep(2)
-    arduino.send_command(BuzzCommand(duration_ms=500, frequency=3000))
+
+def mqtt_example():
+    mqtt_client = MQTTClient("localhost",
+                             1883,
+                             "SxpVEeiEaTXZNaEMDJov")
+    mqtt_client.connect()
+    time.sleep(10)
+
+
+mqtt_example()
 
