@@ -1,6 +1,16 @@
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 import paho.mqtt.client as mqtt
+import queue
+import json
 
-class MQTTClient:
+@dataclass
+class RPCCommand:
+    request_id: str
+    method: str
+    params: Dict[str, Any] = field(default_factory=dict)
+
+class MQTTService:
     def __init__(self, host: str, port: int, token: str):
         """
         Args:
@@ -18,6 +28,7 @@ class MQTTClient:
         self._client.on_publish = self._on_publish
         self._client.on_message = self._on_message
 
+        self._rpc_queue = queue.Queue()
         self._connected = False
 
     # Paho MQTT Callbacks
@@ -35,6 +46,21 @@ class MQTTClient:
 
     def _on_message(self, client, userdata, msg):
         print(f"MQTT: Recieved message '{msg.payload.decode('utf-8')}'")
+        try:
+            request_id = msg.topic.split('/')[-1]
+            payload = json.loads(msg.payload.decode('utf-8'))
+            
+            rpc_command = RPCCommand(
+                    request_id=request_id,
+                    method=payload.get('method'),
+                    params=payload.get('params', {})
+                    )
+
+            self._rpc_queue.put(rpc_command)
+            print(f"MQTT: Queued RPC command - {rpc_command}")
+        
+        except Exception as e:
+            print(f"MQTT: Error processing message on {msg.topic} - {e}")
 
     def connect(self):
         """Connect to the MQTT broker"""
@@ -59,6 +85,29 @@ class MQTTClient:
         """
         return self._connected
 
+    def get_rpc_command(self) -> Optional[RPCCommand]:
+        """
+        Check for the next command in the queue.
+
+        Returns:
+            Optional[dict]: The next RPC command, or None if queue is empty.
+        """
+        try:
+            return self._rpc_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def send_rpc_response(self, rpc_command: RPCCommand, response):
+        if not self._connected:
+            print("MQTT Error: Cannot send RPC response, not connected.")
+            return False
+
+        response_topic = f"v1/devices/me/rpc/response/{rpc_command.request_id}"
+        payload = json.dumps(response)
+        result = self._client.publish(response_topic, payload)
+        print(f"MQTT: Sending RPC response to {response_topic} - {payload}")
+        return result.rc == mqtt.MQTT_ERR_SUCCESS
+
     # Context handling
     def __enter__(self):
         self.connect()
@@ -68,3 +117,4 @@ class MQTTClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
+
