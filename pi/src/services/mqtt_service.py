@@ -97,7 +97,18 @@ class MQTTService:
         except queue.Empty:
             return None
 
-    def send_rpc_response(self, rpc_command: RPCCommand, response):
+    def send_rpc_response(self, rpc_command: RPCCommand, response: dict) -> bool:
+        """
+        Sends a response for a given RPC Command - informing the backend API 
+        whether the command was successfully executed.
+
+        Args:
+            rpc_command (RPCCommand): The command to respond to.
+            response (dict): The response message to provide.
+
+        Returns:
+            bool: True if successfully acknowledged by Thingsboard
+        """
         if not self._connected:
             print("MQTT Error: Cannot send RPC response, not connected.")
             return False
@@ -106,6 +117,24 @@ class MQTTService:
         payload = json.dumps(response)
         result = self._client.publish(response_topic, payload)
         print(f"MQTT: Sending RPC response to {response_topic} - {payload}")
+        return result.rc == mqtt.MQTT_ERR_SUCCESS
+
+    def send_telemetry(self, values: dict):
+        """
+        Sends telemetary data to Thingsboard.
+
+        Args:
+            values (dict): Telemetary data to send.
+        """
+        if not self._connected:
+            print("MQTT Error: Cannot send RPC response, not connected.")
+            return False
+
+        telemetary_topic = "v1/devices/me/telemetry"
+        payload = json.dumps(values)
+        result = self._client.publish(telemetary_topic, payload)
+        print(f"MQTT: Sending telemetary data to {telemetary_topic} - {payload}")
+        print(result)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
 
     # Context handling
