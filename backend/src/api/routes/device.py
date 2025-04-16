@@ -153,10 +153,6 @@ def set_device_schedule(current_user: Annotated[User, Depends(get_current_user)]
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="User can't do this.")
 
-    if schedule is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Schedule not found.")
-
     rpc_command = {
             "method": "updateSchedule",
             "params": ScheduleOut.from_orm(schedule).json()
