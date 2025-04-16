@@ -19,6 +19,7 @@ if __name__ == "__main__":
     
     settings = get_config(".env.dev")
     database = Database(settings.db.uri, settings.db.echo_all)
+    database.initialize_tables()
 
     try:
         user_create = UserCreate(email=sys.argv[1], 

@@ -14,4 +14,4 @@ class User(BaseDatabaseModel):
     schedules = relationship("Schedule", back_populates="owner")
 
 from .device import Device  # Necessary
-
+from .schedule import Schedule

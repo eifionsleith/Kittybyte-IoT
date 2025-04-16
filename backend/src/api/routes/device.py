@@ -1,11 +1,15 @@
+import json
 from typing import Annotated, List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from tb_rest_client import RestClientCE
+from tb_rest_client.rest import ApiException
 
+from src.schemas.schedule import ScheduleOut
 from src.api.dependencies import get_current_superuser, get_current_user, get_db, get_settings, get_tb_client
 from src.crud.device import device_crud_interface
+from src.crud.schedule import schedule_crud_interface
 from src.models.user import User
 from src.schemas.devices import DeviceCreate, DeviceOut, DeviceUserUpdate, DeviceUpdate
 from src.schemas.misc import Success
@@ -120,4 +124,58 @@ def unregister_device(db: Annotated[Session, Depends(get_db)],
     fields_to_update = DeviceUpdate(owner_id=None)
     device = device_crud_interface.update(db, device, fields_to_update)
     return Success(message="Device unregistered")
+
+@router.post("/{device_id}/schedule", response_model=DeviceOut)
+def set_device_schedule(current_user: Annotated[User, Depends(get_current_user)],
+                        db: Annotated[Session, Depends(get_db)],
+                        thingsboard_client: Annotated[RestClientCE, Depends(get_tb_client)],
+                        schedule_id: UUID,
+                        device_id: UUID
+                        ) -> DeviceOut:
+    """
+    Allows a user to set the current active schedule for a device 
+    which is owned by them.
+
+    Pushes the schedule to the device via Thingsboard.
+    """
+    device = device_crud_interface.get_by_id(db, device_id)
+    schedule = schedule_crud_interface.get_by_id(db, schedule_id)
+
+    if device is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Device not found.")
+
+    if schedule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Schedule not found.")
+
+    if device.owner_id != current_user.id or schedule.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="User can't do this.")
+
+    if schedule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Schedule not found.")
+
+    rpc_command = {
+            "method": "updateSchedule",
+            "params": ScheduleOut.from_orm(schedule).json()
+            }
+    try:
+        response = thingsboard_client.handle_two_way_device_rpc_request(str(device.thingsboard_id), rpc_command)
+        if response == "OK":
+            fields_to_update = DeviceUpdate(active_schedule_id=schedule.id)
+            device = device_crud_interface.update(db, device, fields_to_update)
+            return device
+
+        else:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY,
+                                detail="Device failed to update schedule.")
+    except ApiException:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY,
+                            detail="Device failed to update schedule.")
+
+
+    # if response == OK --> Add to database, return yay?
+    # otherwise 500 server error/service unavailable? or return something?
 

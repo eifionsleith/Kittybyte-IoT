@@ -14,3 +14,5 @@ class Schedule(BaseDatabaseModel):
     owner = relationship("User", back_populates="schedules")
     slots = relationship("ScheduleSlot", back_populates="schedule", cascade="all, delete-orphan", passive_deletes=True)
 
+from .schedule_slot import ScheduleSlot
+
