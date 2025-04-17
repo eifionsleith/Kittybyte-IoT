@@ -8,6 +8,24 @@ from src.schemas.schedule import ScheduleCreate, ScheduleUpdate
 
 
 class CRUDSchedule(CRUDBase[Schedule, ScheduleCreate, ScheduleUpdate]):
+    def update(self, db: Session, db_obj: Schedule, obj_update: ScheduleUpdate) -> Schedule:
+        update_data = obj_update.model_dump(exclude_unset=True, exclude={"slots"})
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+
+        if obj_update.slots is not None:
+            db_obj.slots.clear()
+            db.flush()
+
+            for slot in obj_update.slots:
+                new_slot = ScheduleSlot(**slot.model_dump(), schedule_id=db_obj.id)
+                db_obj.slots.append(new_slot)
+
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
     def get_many_by_owner_id(self, db: Session, owner_id: UUID) -> List[Schedule]:
         return self.get_many(db, self.model.owner_id == owner_id)
 

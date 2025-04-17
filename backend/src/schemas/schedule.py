@@ -6,18 +6,19 @@ from src.schemas.schedule_slot import ScheduleSlotCreate, ScheduleSlotOut
 
 
 class ScheduleBase(BaseModel):
-    description: str = Field(..., max_length=255)
+    name: str = Field(..., max_length=64)
 
 class ScheduleCreate(ScheduleBase):
-    name: str = Field(..., max_length=64)
+    description: str = Field(..., max_length=255)
     slots: List[ScheduleSlotCreate] = Field(..., min_length=1)
 
-class ScheduleUpdate(ScheduleBase):
+class ScheduleUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=64)
+    slots: Optional[List[ScheduleSlotCreate]] = None
 
 class ScheduleOut(ScheduleBase):
     id: UUID
-    name: Optional[str] = Field(None, max_length=64)
+    description: str = Field(..., max_length=255)
     slots: List[ScheduleSlotOut] = [] # schedule slot out
 
     class Config:
