@@ -1,4 +1,3 @@
-import json
 from typing import Annotated, List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -158,7 +157,7 @@ def set_device_schedule(current_user: Annotated[User, Depends(get_current_user)]
             "params": ScheduleOut.from_orm(schedule).json()
             }
     try:
-        response = thingsboard_client.handle_two_way_device_rpc_request(str(device.thingsboard_id), rpc_command)
+        response = thingsboard_client.handle_two_way_device_rpc_request(str(device.thingsboard_id), rpc_command) # pyright: ignore[reportArgumentType]
         if response == "OK":
             fields_to_update = DeviceUpdate(active_schedule_id=schedule.id)
             device = device_crud_interface.update(db, device, fields_to_update)
@@ -170,8 +169,4 @@ def set_device_schedule(current_user: Annotated[User, Depends(get_current_user)]
     except ApiException:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY,
                             detail="Device failed to update schedule.")
-
-
-    # if response == OK --> Add to database, return yay?
-    # otherwise 500 server error/service unavailable? or return something?
 
