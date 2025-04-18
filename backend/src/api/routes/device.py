@@ -158,7 +158,7 @@ def set_device_schedule(current_user: Annotated[User, Depends(get_current_user)]
             }
     try:
         response = thingsboard_client.handle_two_way_device_rpc_request(str(device.thingsboard_id), rpc_command) # pyright: ignore[reportArgumentType]
-        if response == "OK":
+        if response.get("status") == "success":
             fields_to_update = DeviceUpdate(active_schedule_id=schedule.id)
             device = device_crud_interface.update(db, device, fields_to_update)
             return device
