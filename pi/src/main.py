@@ -19,7 +19,10 @@ class App:
         self._scheduler = SchedulerService(self.schedule_config)
         
         rpc_handler_map = {
-                "updateSchedule": functools.partial(handlers.handle_schedule_update, schedule_config_handler=self.schedule_config, scheduler=self._scheduler)
+                "updateSchedule": functools.partial(
+                    handlers.handle_schedule_update, 
+                    schedule_config_handler=self.schedule_config, 
+                    scheduler=self._scheduler)
                 }
 
         self._mqtt = ThingsboardMQTTService(self.system_config.settings.thingsboard_host,
