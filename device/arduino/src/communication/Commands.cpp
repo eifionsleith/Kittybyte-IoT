@@ -26,8 +26,9 @@ namespace Commands {
       return;
     }
 
-    uint16_t frequency = (packet.payload[0] << 8) | packet.payload[1];
-    uint16_t duration_ms = (packet.payload[2] << 8) | packet.payload[3];
+    // Interpret paramaters as big-endian...
+    uint16_t frequency = (uint16_t)(packet.payload[0] << 8) | packet.payload[1];
+    uint16_t duration_ms = (uint16_t)(packet.payload[2] << 8) | packet.payload[3];
 
     if (frequency == 0 || duration_ms == 0) {
       Protocol::send_response(ERROR_INVALID_PAYLOAD, nullptr, 0);
