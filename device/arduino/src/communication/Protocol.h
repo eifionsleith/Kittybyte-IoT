@@ -6,7 +6,7 @@
 namespace Protocol {
   const byte START_BYTE = 0xAA;
   const byte MAX_BUFFER_SIZE = 64;
-  const byte MAX_PAYLOAD_SIZE = MAX_BUFFER_SIZE - 3;
+  const byte MAX_PAYLOAD_SIZE = MAX_BUFFER_SIZE - 4; // 4 = 1 START_BYTE + 1 COMMAND_ID + 1 PAYLOAD_LENGTH + 1 CHECKSUM 
   
   /** Structure representing a packet as recieved by the protocol */
   struct ReceivedPacket {
