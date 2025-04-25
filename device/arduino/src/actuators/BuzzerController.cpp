@@ -9,10 +9,9 @@ namespace BuzzerController {
     const byte MAX_MELODY_NOTES = 30;
 
     struct CurrentMelody {
-      uint16_t tempo = 0;
       uint16_t frequencies[MAX_MELODY_NOTES];
+      uint16_t note_duration = 0;
       byte length = 0;
-      uint16_t base_not_duration = 0;
       byte current_frequency_index = 0;
     };
 
@@ -32,12 +31,16 @@ namespace BuzzerController {
       }
     }
 
-    void handle_playing_melody_state() { // TODO!!!!
+    void handle_playing_melody_state() {
       unsigned long now = millis();
       if (now > task_end_time) {
-        // Move to the next note... if there is one...
         noTone(buzzer_pin);
+        active_melody.current_frequency_index++;
 
+        if (active_melody.current_frequency_index < active_melody.length) {
+          tone(buzzer_pin, active_melody.frequencies[active_melody.current_frequency_index]);
+          task_end_time = millis() + active_melody.note_duration;
+        }
       }
     }
   }
@@ -86,15 +89,14 @@ namespace BuzzerController {
       return false;
     }
 
-    active_melody.tempo = tempo;
     memcpy(active_melody.frequencies, frequencies, frequencies_l * sizeof(uint16_t));
     active_melody.length = frequencies_l;
     active_melody.current_frequency_index = 0;
-    active_melody.base_not_duration = 60000 / active_melody.tempo;
+    active_melody.note_duration = 60000 / tempo;
     
     current_state = BuzzerState::PLAYING_MELODY;
     tone(buzzer_pin, active_melody.frequencies[0]);
-    task_end_time = millis() + active_melody.base_not_duration;
+    task_end_time = millis() + active_melody.note_duration;
 
     return true;
   }
