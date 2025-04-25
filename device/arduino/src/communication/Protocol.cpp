@@ -4,6 +4,7 @@
 namespace Protocol {
   enum class ParseState {
     WAITING_FOR_START,
+    READING_PACKET_ID,
     READING_COMMAND_ID,
     READING_LENGTH,
     READING_PAYLOAD,
@@ -11,6 +12,7 @@ namespace Protocol {
   };
 
   static ParseState current_state = ParseState::WAITING_FOR_START;
+  static byte received_packet_id = 0;
   static byte recieved_command_id = 0;
   static byte expected_payload_length = 0;
   static byte payload_buffer[Protocol::MAX_PAYLOAD_SIZE];
@@ -26,8 +28,13 @@ namespace Protocol {
       switch(current_state) {
         case ParseState::WAITING_FOR_START:
           if (current_byte == START_BYTE) {
-            current_state = ParseState::READING_COMMAND_ID;
+            current_state = ParseState::READING_PACKET_ID;
           }
+          break;
+
+        case ParseState::READING_PACKET_ID:
+          received_packet_id = current_byte;
+          current_state = ParseState::READING_COMMAND_ID;
           break;
 
         case ParseState::READING_COMMAND_ID:
@@ -67,13 +74,15 @@ namespace Protocol {
 
           byte checksum_data[MAX_BUFFER_SIZE];
           checksum_data[0] = START_BYTE;
-          checksum_data[1] = recieved_command_id;
-          checksum_data[2] = expected_payload_length;
-          memcpy(&checksum_data[3], payload_buffer, expected_payload_length);
+          checksum_data[1] = received_packet_id;
+          checksum_data[2] = recieved_command_id;
+          checksum_data[3] = expected_payload_length;
+          memcpy(&checksum_data[4], payload_buffer, expected_payload_length);
           
-          byte calcualted_checksum = calculate_checksum(checksum_data, expected_payload_length + 3);
+          byte calcualted_checksum = calculate_checksum(checksum_data, expected_payload_length + 4);
 
           if (calcualted_checksum == received_checksum) {
+            packet.packet_id = received_packet_id;
             packet.command_id = recieved_command_id;
             packet.payload_length = expected_payload_length;
             memcpy(packet.payload, payload_buffer, expected_payload_length);
@@ -102,7 +111,7 @@ namespace Protocol {
     return checksum;
   }
   
-  bool send_response(byte response_id, const byte* payload, byte payload_length) {
+  bool send_response(byte packet_id, byte response_id, const byte* payload, byte payload_length) {
     if (payload_length > MAX_PAYLOAD_SIZE) {
       return false;  // Payload is too large to send...
     }                // Might be worth adding error handling?
@@ -112,9 +121,10 @@ namespace Protocol {
 
     // Assemble the header...
     packet_buffer[0] = START_BYTE;
-    packet_buffer[1] = response_id;
-    packet_buffer[2] = payload_length;
-    packet_length = 3;
+    packet_buffer[1] = packet_id;
+    packet_buffer[2] = response_id;
+    packet_buffer[3] = payload_length;
+    packet_length = 4;
 
     // memcpy the payload only if it exists...
     if (payload != nullptr && payload_length > 0) {

@@ -20,6 +20,7 @@ namespace BuzzerController {
     unsigned long task_end_time = 0;
 
     CurrentMelody active_melody;
+    byte active_packet_id;
 
     // Functions to handle each state, called each cycle by update(), based on current state.
     void handle_simple_buzz_state() {
@@ -27,7 +28,7 @@ namespace BuzzerController {
       if (now > task_end_time) {
         noTone(buzzer_pin);
         current_state = BuzzerState::IDLE;
-        Protocol::send_response(Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
+        Protocol::send_response(active_packet_id, Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
       }
     }
 
@@ -42,7 +43,7 @@ namespace BuzzerController {
           task_end_time = millis() + active_melody.note_duration;
         } else {
           current_state = BuzzerState::IDLE;
-          Protocol::send_response(Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
+          Protocol::send_response(active_packet_id, Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
         }
       }
     }
@@ -62,9 +63,7 @@ namespace BuzzerController {
 
     switch (current_state) {
       case BuzzerState::SIMPLE_DURATION:
-        noTone(buzzer_pin);
-        current_state = BuzzerState::IDLE;
-        Protocol::send_response(Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
+        handle_simple_buzz_state();
         break;
       case BuzzerState::PLAYING_MELODY:
         handle_playing_melody_state();
@@ -74,22 +73,26 @@ namespace BuzzerController {
     }
   }
 
-  bool start_simple_buzz(uint16_t frequency, uint16_t duration_ms) {
+  bool start_simple_buzz(const byte packet_id, uint16_t frequency, uint16_t duration_ms) {
     if (current_state != BuzzerState::IDLE || buzzer_pin == (byte)-1) {
       return false;
     }
 
+    active_packet_id = packet_id;
     current_state = BuzzerState::SIMPLE_DURATION;
     task_end_time = millis() + duration_ms;
     tone(buzzer_pin, frequency);
     return true;
   }
 
-  bool start_melody(uint16_t tempo, const uint16_t* frequencies, byte frequencies_l) {
-    if (current_state != BuzzerState::IDLE || buzzer_pin == (byte) -1) {
+  bool start_melody(const byte packet_id, uint16_t tempo, const uint16_t* frequencies, byte frequencies_l) {
+    if (current_state != BuzzerState::IDLE || 
+        buzzer_pin == (byte) -1 ||
+        frequencies_l > MAX_MELODY_NOTES) {
       return false;
     }
 
+    active_packet_id = packet_id;
     memcpy(active_melody.frequencies, frequencies, frequencies_l * sizeof(uint16_t));
     active_melody.length = frequencies_l;
     active_melody.current_frequency_index = 0;

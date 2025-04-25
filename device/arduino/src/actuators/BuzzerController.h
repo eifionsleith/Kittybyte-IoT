@@ -15,10 +15,10 @@ namespace BuzzerController {
   void update();
 
   // Sets the state to indicate a simple buzz should start
-  bool start_simple_buzz(uint16_t frequency, uint16_t duration_ms);
+  bool start_simple_buzz(const byte packet_id, uint16_t frequency, uint16_t duration_ms);
 
   // Sets the state to indicate the start of a melody
-  bool start_melody(const uint16_t tempo, const uint16_t* frequencies, const byte frequencies_l);
+  bool start_melody(const byte packet_id, const uint16_t tempo, const uint16_t* frequencies, const byte frequencies_l);
 
   // Returns the state - good for checking if IDLE, and therefore ready to recieve commands
   BuzzerState get_current_state();

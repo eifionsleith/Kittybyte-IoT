@@ -25,7 +25,7 @@ namespace Commands {
         break;
       default:
         byte error_payload[] = { packet.command_id };
-        Protocol::send_response(ERROR_UNKNOWN_COMMAND, error_payload, sizeof(error_payload));
+        Protocol::send_response(packet.packet_id, ERROR_UNKNOWN_COMMAND, error_payload, sizeof(error_payload));
         break;
     }
   }
@@ -37,7 +37,7 @@ namespace Commands {
     
     const byte EXPECTED_LENGTH = 4;
     if (packet.payload_length != EXPECTED_LENGTH) {
-      Protocol::send_response(ERROR_INVALID_PAYLOAD, nullptr, 0);
+      Protocol::send_response(packet.packet_id, ERROR_INVALID_PAYLOAD, nullptr, 0);
       return;
     }
 
@@ -46,16 +46,16 @@ namespace Commands {
     uint16_t duration_ms = read_uint16_big_endian(packet.payload, 2);
 
     if (frequency == 0 || duration_ms == 0) {
-      Protocol::send_response(ERROR_INVALID_PAYLOAD, nullptr, 0);
+      Protocol::send_response(packet.packet_id, ERROR_INVALID_PAYLOAD, nullptr, 0);
       return;
     }
     
-    if (!BuzzerController::start_simple_buzz(frequency, duration_ms)) {
-      Protocol::send_response(ERROR_RESOURCE_BUSY, nullptr, 0);
+    if (!BuzzerController::start_simple_buzz(packet.packet_id, frequency, duration_ms)) {
+      Protocol::send_response(packet.packet_id, ERROR_RESOURCE_BUSY, nullptr, 0);
       return;
     }
 
-    Protocol::send_response(NOTIFY_COMMAND_RECEIVED, nullptr, 0);
+    Protocol::send_response(packet.packet_id, NOTIFY_COMMAND_RECEIVED, nullptr, 0);
   }
 
   void handle_buzzer_melody(const Protocol::ReceivedPacket& packet) {
@@ -68,7 +68,7 @@ namespace Commands {
     // Packet must contain first three bytes to parse length...
     const byte MIN_EXPECTED_LENGTH = 3;
     if (packet.payload_length < MIN_EXPECTED_LENGTH) {
-      Protocol::send_response(ERROR_INVALID_PAYLOAD, nullptr, 0);
+      Protocol::send_response(packet.packet_id, ERROR_INVALID_PAYLOAD, nullptr, 0);
       return;
     }
 
@@ -83,7 +83,7 @@ namespace Commands {
     if (packet.payload_length != expected_total_length ||
         notes_array_length == 0 ||
         tempo == 0) {
-      Protocol::send_response(ERROR_INVALID_PAYLOAD, nullptr, 0);
+      Protocol::send_response(packet.packet_id, ERROR_INVALID_PAYLOAD, nullptr, 0);
       return;
     }
 
@@ -95,12 +95,12 @@ namespace Commands {
     }
 
     // Start the melody, returns false if pin isn't initiated or buzzer is busy...
-    if (!BuzzerController::start_melody(tempo, melody_notes, notes_array_length)) {
-      Protocol::send_response(ERROR_RESOURCE_BUSY, nullptr, 0);
+    if (!BuzzerController::start_melody(packet.packet_id, tempo, melody_notes, notes_array_length)) {
+      Protocol::send_response(packet.packet_id, ERROR_RESOURCE_BUSY, nullptr, 0);
       return;
     }
 
-    Protocol::send_response(NOTIFY_COMMAND_RECEIVED, nullptr, 0);
+    Protocol::send_response(packet.packet_id, NOTIFY_COMMAND_RECEIVED, nullptr, 0);
   }
 }
 

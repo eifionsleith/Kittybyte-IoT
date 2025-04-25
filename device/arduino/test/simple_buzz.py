@@ -1,4 +1,6 @@
 # AI generated... be careful...
+# Modified to include packet_id in commands and responses.
+
 import serial
 import struct
 import time
@@ -32,11 +34,16 @@ RESPONSE_CODES = {
 SERIAL_PORT = '/dev/ttyACM0'  # <-- CHANGE THIS
 BAUD_RATE = 9600
 READ_TIMEOUT_SECONDS = 1.0 # Timeout for waiting for a response byte
-MAX_PAYLOAD_SIZE = 61 # From Protocol.h (MAX_BUFFER_SIZE=64 - 3 header bytes)
+# Max payload size from Protocol.h (MAX_BUFFER_SIZE=64 - 5 header bytes)
+MAX_PAYLOAD_SIZE = 59
 
 # Buzzer parameters
 FREQUENCY = 3000
 DURATION_MS = 1000
+
+# --- Test Packet ID ---
+# Hardcoded packet ID for this script
+SIMPLE_BUZZ_PACKET_ID = 0x55
 
 # --- Helper Function ---
 def calculate_checksum(data_bytes):
@@ -46,15 +53,17 @@ def calculate_checksum(data_bytes):
         checksum ^= byte
     return checksum
 
-# --- Packet Reading Function ---
+# --- Packet Reading Function (Modified to include packet_id) ---
 def read_response_packet(ser, timeout):
     """
     Reads and parses a response packet from the serial port using a state machine.
+    Assumes packet format: [START_BYTE] [PACKET_ID] [RESPONSE_ID] [PAYLOAD_LENGTH] [PAYLOAD (optional)] [CHECKSUM]
     Returns a dictionary with packet info if successful, None otherwise.
     """
     state = "WAITING_FOR_START"
     start_time = time.time()
     packet = {
+        "packet_id": None, # Added packet_id
         "response_id": None,
         "payload_length": 0,
         "payload": b'',
@@ -69,7 +78,7 @@ def read_response_packet(ser, timeout):
     while time.time() - start_time < timeout:
         if ser.in_waiting > 0:
             byte = ser.read(1)
-            if not byte: # Should not happen if in_waiting > 0, but good practice
+            if not byte:
                 continue
 
             current_byte = byte[0]
@@ -78,15 +87,20 @@ def read_response_packet(ser, timeout):
 
             if state == "WAITING_FOR_START":
                 if current_byte == START_BYTE:
-                    state = "READING_RESPONSE_ID"
+                    state = "READING_PACKET_ID" # Transition to reading packet ID
                 else:
                      packet["raw_bytes"].clear() # Discard bytes before start byte
+
+            elif state == "READING_PACKET_ID": # New state
+                packet["packet_id"] = current_byte
+                state = "READING_RESPONSE_ID"
 
             elif state == "READING_RESPONSE_ID":
                 packet["response_id"] = current_byte
                 state = "READING_LENGTH"
 
             elif state == "READING_LENGTH":
+                # Use the MAX_PAYLOAD_SIZE defined in this script
                 if current_byte > MAX_PAYLOAD_SIZE:
                     # Invalid length, reset state machine
                     print(f"Warning: Received invalid payload length ({current_byte}). Resetting.")
@@ -113,8 +127,8 @@ def read_response_packet(ser, timeout):
             elif state == "VALIDATING_CHECKSUM":
                 packet["received_checksum"] = current_byte
 
-                # Prepare data for checksum calculation
-                checksum_data = bytes([START_BYTE, packet["response_id"], packet["payload_length"]]) + packet["payload"]
+                # Prepare data for checksum calculation: START_BYTE, PACKET_ID, RESPONSE_ID, PAYLOAD_LENGTH, PAYLOAD
+                checksum_data = bytes([START_BYTE, packet["packet_id"], packet["response_id"], packet["payload_length"]]) + packet["payload"] # Include packet_id
                 packet["calculated_checksum"] = calculate_checksum(checksum_data)
 
                 # Validate checksum
@@ -138,7 +152,7 @@ def read_response_packet(ser, timeout):
 
 
 # --- Main Logic ---
-def send_and_receive(port, baud, frequency, duration_ms):
+def send_and_receive(port, baud, packet_id, frequency, duration_ms):
     """Constructs BUZZER_SIMPLE, sends it, and waits for responses."""
 
     if frequency <= 0 or frequency > 65535 or duration_ms <= 0 or duration_ms > 65535:
@@ -147,12 +161,15 @@ def send_and_receive(port, baud, frequency, duration_ms):
 
     payload = struct.pack('>HH', frequency, duration_ms)
     payload_length = len(payload)
-    packet_data = bytes([START_BYTE, CMD_BUZZER_SIMPLE, payload_length]) + payload
+
+    # Packet format: [START_BYTE] [PACKET_ID] [COMMAND_ID] [PAYLOAD_LENGTH] [PAYLOAD] [CHECKSUM]
+    packet_data = bytes([START_BYTE, packet_id, CMD_BUZZER_SIMPLE, payload_length]) + payload # Include packet_id
     checksum = calculate_checksum(packet_data)
     packet_to_send = packet_data + bytes([checksum])
 
     print("--- Sending Command ---")
     print(f"Serial Port: {port}")
+    print(f"Packet ID: {packet_id}") # Print the sent packet ID
     print(f"Packet to Send ({len(packet_to_send)} bytes): {packet_to_send.hex()}")
 
     ser = None # Initialize ser to None
@@ -182,7 +199,13 @@ def send_and_receive(port, baud, frequency, duration_ms):
                 resp_name = RESPONSE_CODES.get(resp_id, f"Unknown (0x{resp_id:02x})")
                 validity = "VALID" if response['is_valid'] else "INVALID CHECKSUM"
                 payload_hex = response['payload'].hex() if response['payload'] else "None"
-                print(f"Received: ID=0x{resp_id:02x} ({resp_name}), Len={response['payload_length']}, Payload={payload_hex}, Status={validity}")
+                # Print the received packet ID
+                print(f"Received: Packet ID={response['packet_id']}, ID=0x{resp_id:02x} ({resp_name}), Len={response['payload_length']}, Payload={payload_hex}, Status={validity}")
+
+                # Optional: Verify the received packet ID matches the sent one
+                if response['is_valid'] and response['packet_id'] != packet_id:
+                    print(f"Warning: Received packet ID ({response['packet_id']}) does not match sent ID ({packet_id}).")
+
                 # Optional: Break early if a specific response is received
                 # if resp_id == RESP_NOTIFY_TASK_COMPLETE:
                 #    break
@@ -205,4 +228,4 @@ def send_and_receive(port, baud, frequency, duration_ms):
 
 if __name__ == "__main__":
     port_arg = sys.argv[1] if len(sys.argv) > 1 else SERIAL_PORT
-    send_and_receive(port_arg, BAUD_RATE, FREQUENCY, DURATION_MS)
+    send_and_receive(port_arg, BAUD_RATE, SIMPLE_BUZZ_PACKET_ID, FREQUENCY, DURATION_MS)
