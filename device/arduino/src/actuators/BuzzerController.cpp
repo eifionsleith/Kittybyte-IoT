@@ -40,6 +40,9 @@ namespace BuzzerController {
         if (active_melody.current_frequency_index < active_melody.length) {
           tone(buzzer_pin, active_melody.frequencies[active_melody.current_frequency_index]);
           task_end_time = millis() + active_melody.note_duration;
+        } else {
+          current_state = BuzzerState::IDLE;
+          Protocol::send_response(Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
         }
       }
     }
@@ -57,19 +60,17 @@ namespace BuzzerController {
       return;
     }
 
-    unsigned long now = millis();
-    if (now >= task_end_time) {
-      switch (current_state) {
-        case BuzzerState::SIMPLE_DURATION:
-          noTone(buzzer_pin);
-          current_state = BuzzerState::IDLE;
-          Protocol::send_response(Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
-          break;
-        case BuzzerState::PLAYING_MELODY:
-          break;
-        default:
-          break;
-      }
+    switch (current_state) {
+      case BuzzerState::SIMPLE_DURATION:
+        noTone(buzzer_pin);
+        current_state = BuzzerState::IDLE;
+        Protocol::send_response(Commands::NOTIFY_TASK_COMPLETE, nullptr, 0);
+        break;
+      case BuzzerState::PLAYING_MELODY:
+        handle_playing_melody_state();
+        break;
+      default:
+        break;
     }
   }
 
