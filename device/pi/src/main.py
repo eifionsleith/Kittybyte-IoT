@@ -4,11 +4,11 @@ import struct
 from communication.arduino_service import ArduinoService
 
 log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.INFO, format=log_format)
+logging.basicConfig(level=logging.DEBUG, format=log_format)
 logger = logging.getLogger(__name__)
 
 def example_callback(packet_id: int, response_id: int, payload: bytes):
-    logger.info(f"Callback triggered for packet_id: {packet_id}")
+    logger.info(f"Callback triggered for packet_id: {packet_id}, response_id: {response_id}, payload: {payload.hex()}")
     
 
 arduino_service = ArduinoService("/dev/ttyACM0", 9600)
@@ -22,6 +22,7 @@ duration_ms = 500
 # Use '>H' for unsigned short (uint16_t) and Big-Endian byte order
 payload = struct.pack('>HH', frequency, duration_ms)
 
+arduino_service.send_command(0x10, payload=payload, callback=example_callback)
 arduino_service.send_command(0x10, payload=payload, callback=example_callback)
 
 while True:

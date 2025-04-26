@@ -1,6 +1,3 @@
-# TODO: NOTIFY_MESSAGE_RECEIVED, NOTIFY_TASK_COMPLETE, ERROR to be handled
-#       by responses. e.g. message received shouldn't pop the pending command.
-
 import logging
 import time
 import serial
@@ -258,21 +255,29 @@ class ArduinoService:
         Handles a complete received packet (valid or invalid checksum).
         If valid and matching a pending command, will trigger the callback.
         """
-        packet_id = packet.get("packet_id")
-        response_id = packet.get("response_id")
-        payload = packet.get("payload")
-        logger.debug(f"Processing a received packet {packet_id}.")
+        logger.debug(f"Packet: {packet}")
+        packet_id = packet["packet_id"]
+        response_id = packet["response_id"]
+        payload = packet["payload"]
+        logger.debug(f"Processing a received packet {packet_id}: {packet}")
+        logger.debug(f"And response_id {response_id}")
 
         with self._pending_commands_lock:
-            pending_command_info = self._pending_commands.pop(packet_id, None)
+            pending_command_info = self._pending_commands.get(packet_id, None)
 
         if pending_command_info:
             logger.debug("Found pending command for packet ID {packet_id}. Triggering callback.")
+
+            # If the response_id is R_NOTIFY_COMMAND_RECEIVED we still expect further responses.
+            if response_id != arduino_protocol.R_NOTIFY_COMMAND_RECEIVED:
+                with self._pending_commands_lock:
+                    self._pending_commands.pop(packet_id)
+
             callback = pending_command_info.get("callback")
             if callback:
                 try:
                     callback(packet_id, response_id, payload)
-                except Exception as e:
+                except Exception:
                     logger.exception(f"Error executing callback for packet {packet_id}.")
             else:
                 logger.debug(f"No callback registered for packet {packet_id}.")
