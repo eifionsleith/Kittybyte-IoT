@@ -1,42 +1,31 @@
-import functools
 import logging
 import time
-from config.config_handler import ConfigHandler
-from config.models.schedule_config import ScheduleConfig
-from config.models.system_config import SystemConfig
-from rpc import handlers
-from services.schedule_service import SchedulerService
-from services.thingsboard_mqtt_service import ThingsboardMQTTService
+import struct
+from communication.arduino_service import ArduinoService
 
 log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_format)
+logger = logging.getLogger(__name__)
 
+def example_callback(packet_id: int, response_id: int, payload: bytes):
+    logger.info(f"Callback triggered for packet_id: {packet_id}")
+    
 
-class App:
-    def __init__(self, system_config_path: str = ".sys.cfg", schedule_config_path: str = ".sch.cfg"):
-        self.system_config = ConfigHandler(system_config_path, SystemConfig)
-        self.schedule_config = ConfigHandler(schedule_config_path, ScheduleConfig)
-        self._scheduler = SchedulerService(self.schedule_config)
-        
-        rpc_handler_map = {
-                "updateSchedule": functools.partial(
-                    handlers.handle_schedule_update, 
-                    schedule_config_handler=self.schedule_config, 
-                    scheduler=self._scheduler)
-                }
+arduino_service = ArduinoService("/dev/ttyACM0", 9600)
+arduino_service.connect()
 
-        self._mqtt = ThingsboardMQTTService(self.system_config.settings.thingsboard_host,
-                                            self.system_config.settings.thingsboard_mqtt_port,
-                                            self.system_config.settings.thingsboard_token,
-                                            rpc_handler_map)
+# Define frequency (e.g., 1000 Hz) and duration (e.g., 500 ms)
+frequency = 1000
+duration_ms = 500
 
-    def run(self):
-        self._mqtt.connect()
-        while True:
-            self._scheduler.run_pending()
-            time.sleep(1)
+# Pack the frequency and duration into a payload (uint16_t, Big-Endian)
+# Use '>H' for unsigned short (uint16_t) and Big-Endian byte order
+payload = struct.pack('>HH', frequency, duration_ms)
 
-if __name__ == "__main__":
-    app = App()
-    app.run()
+arduino_service.send_command(0x10, payload=payload, callback=example_callback)
+
+while True:
+    arduino_service.process_incoming_data()
+    arduino_service.cleanup_pending_commands(1)
+    time.sleep(0.01)
 
