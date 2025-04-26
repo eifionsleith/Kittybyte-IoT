@@ -12,7 +12,7 @@ export default function Home() {
     const storedUser = JSON.parse(localStorage.getItem('user')) || { name: 'Ziad' };
     setUser(storedUser);
     fetchStatus();
-    const interval = setInterval(fetchStatus, 60000); // Refresh every 60s
+    const interval = setInterval(fetchStatus, 60000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -26,7 +26,12 @@ export default function Home() {
       <h2>Hello {user.name}!</h2>
       {status ? (
         <>
-          <div style={{ textAlign: 'center', margin: '20px 0' }}>
+          <div style={{ 
+            textAlign: 'center', 
+            margin: '20px 0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center' }}>
             <div style={{
               width: 120,
               height: 120,
