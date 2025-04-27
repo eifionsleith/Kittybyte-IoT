@@ -15,6 +15,9 @@ class ArduinoCommunicationError(Exception):
     """Base class for errors related to Arduino communication."""
     ...
 
+class ArduinoResourceBusyError(ArduinoCommunicationError):
+    """Raised when the requested resource (e.g. buzzer) is busy."""
+
 class ArduinoTimeoutError(ArduinoCommunicationError):
     """Raised when a communication timeout occurs."""
     ...
