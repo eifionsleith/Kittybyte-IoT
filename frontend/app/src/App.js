@@ -9,6 +9,7 @@ import NewCatForm from './components/Pets/NewCatForm';
 import UserMenu from './components/Menu/UserMenu';
 import BluetoothConnect from './components/Pairing/BluetoothConnect';
 import Calibration from './components/Setup/Calibration';
+import ImageFeed from './components/Pets/ImageFeed';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/schedule/details" element={<ScheduleDetails />} />
         <Route path="/new-cat" element={<NewCatForm />} />
         <Route path="/menu" element={<UserMenu />} />
+        <Route path="/imagefeed" element={<ImageFeed />} />
       </Routes>
     </Router>
   );
