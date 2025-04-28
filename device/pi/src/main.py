@@ -1,7 +1,7 @@
 import logging
 import time
-import struct
 from communication.arduino_service import ArduinoService
+from communication.commands.buzzer_commands import MelodyCommand
 
 log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
@@ -14,19 +14,12 @@ def example_callback(packet_id: int, response_id: int, payload: bytes):
 arduino_service = ArduinoService("/dev/ttyACM0", 9600)
 arduino_service.connect()
 
-# Define frequency (e.g., 1000 Hz) and duration (e.g., 500 ms)
-frequency = 1000
-duration_ms = 500
+cmd = MelodyCommand(120, [1000, 1200, 1400, 1000, 1200, 1400])
 
-# Pack the frequency and duration into a payload (uint16_t, Big-Endian)
-# Use '>H' for unsigned short (uint16_t) and Big-Endian byte order
-payload = struct.pack('>HH', frequency, duration_ms)
-
-arduino_service.send_command(0x10, payload=payload, callback=example_callback)
-arduino_service.send_command(0x10, payload=payload, callback=example_callback)
+arduino_service.send_command(cmd.get_command_id(), payload=cmd.get_payload(), callback=example_callback)
 
 while True:
     arduino_service.process_incoming_data()
-    arduino_service.cleanup_pending_commands(1)
+    arduino_service.cleanup_pending_commands(10)
     time.sleep(0.01)
 
