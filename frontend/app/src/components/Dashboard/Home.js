@@ -3,10 +3,12 @@ import React, { useEffect, useState } from 'react';
 import '../../styles/common.css';
 import { getFoodStatus } from '../../api';
 import Navbar from '../Shared/Navbar';
+import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
   const [status, setStatus] = useState(null);
   const [user, setUser] = useState({ name: 'User' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('user')) || { name: 'Ziad' };
@@ -49,6 +51,10 @@ export default function Home() {
           </div>
           <p><strong>{status.feedsRemaining}</strong> Feeds to go!</p>
           <p>Last fed at {new Date(status.lastFeed).toLocaleTimeString()}</p>
+
+          <button onClick={() => navigate('/ImageFeed')} style={{ marginTop: '20px' }}>
+        View Live Image
+      </button>
         </>
       ) : (
         <p>Loading...</p>
