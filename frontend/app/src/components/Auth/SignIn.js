@@ -15,7 +15,7 @@ export default function SignIn() {
     try {
       const user = await login(username, password);
       localStorage.setItem('user', JSON.stringify({ name: username }));
-      navigate('/home');
+      navigate('/Calibration');
     } catch (err) {
       setError("Invalid username or password");
     }
