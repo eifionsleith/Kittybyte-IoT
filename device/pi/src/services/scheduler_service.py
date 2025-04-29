@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 dispensing_locked = False
 ## Used to start a timer after we dispense, that can 
 ## then alert the user if their cat didn't eat.
+## Realistically the timer should be handled by the backend.
 missed_feed_timer: Optional[Timer] = None
 
 DEFAULT_MISSED_FEED_TIMER_MINUTES = 30
@@ -104,8 +105,24 @@ class SchedulerService:
         Args:
             amount (int): Amount of food to dispense, in grams.
         """
-        logger.info("Scheduled feeding event arrives, triggering feeding sequence.")
-        ...  # TODO
+        global dispensing_locked, missed_feed_timer
+
+        dispensing_locked = True
+        # Report to Thingsboard?
+
+        # -- Initiate Feeding Sequence --
+        # Call appropriate logic within the ArduinoInterface here
+        logger.info(f"Triggering the feeding mechanism for {amount} grams... (NOT CURRENTLY IMPLEMENTED)")
+
+        # Clear any stale/conflicting missed_feed_timer, just incase
+        if missed_feed_timer and missed_feed_timer.is_alive():
+            missed_feed_timer.cancel()
+            missed_feed_timer = None
+
+        logger.info(f"Starting missed feed timer for {DEFAULT_MISSED_FEED_TIMER_MINUTES} minutes.")
+        # -- TODO: Might be worth saving the timer to a file for persistence
+        missed_feed_timer = Timer(DEFAULT_MISSED_FEED_TIMER_SECONDS, self._missed_feed_alert)
+        missed_feed_timer.start()
 
     def _missed_feed_alert(self):
         """
@@ -115,7 +132,15 @@ class SchedulerService:
         the user.
         """
         logger.info("Missed feeding alert trigger.")
-        ...  # TODO
+        global dispensing_locked, missed_feed_timer
+
+        if dispensing_locked:
+            try:
+                self._mqtt_service.publish_telemetry({"feed_alert": "missed_feed"})
+            except Exception as e:
+                logger.error(f"Failed to publish 'missed_feed' telemetry: {e}")
+
+        missed_feed_timer = None
 
     def notify_cat_detected(self):
         """
@@ -127,7 +152,20 @@ class SchedulerService:
         than once.
         """
         logger.info("notify_cat_detected called.")
-        ...  # TODO
+        global dispensing_locked, missed_feed_timer
+
+        if dispensing_locked:
+            logger.info("Unlocking dispensing, due to cat being detected.")
+            dispensing_locked = False
+            # Report to Thingsboard?
+
+            if missed_feed_timer and missed_feed_timer.is_alive():
+                missed_feed_timer.cancel()
+                missed_feed_timer = None
+        try:
+            self._mqtt_service.publish_telemetry({"cat_detection_status": "cat_detected"})
+        except Exception as e:
+            logger.error(f"Failed to publish cat_detected telemetry: {e}")
 
     def is_dispensing_locked(self) -> bool:
         """
