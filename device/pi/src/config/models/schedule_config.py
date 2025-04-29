@@ -17,7 +17,6 @@ class ScheduleConfig(BaseModel):
     Represents the overall schedule configuration, containing
     multiple time slots.
     """
-    id: UUID = Field(..., description="Unique identifier for this schedule configuration.")
     slots: List[Slot] = Field(default_factory=list, description="List of scheduled feeding\
                                                         time slots.")
 

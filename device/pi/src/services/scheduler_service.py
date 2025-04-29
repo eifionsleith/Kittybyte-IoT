@@ -1,13 +1,16 @@
+from __future__ import annotations
 from functools import partial
 import logging
+from pydantic import ValidationError
 import schedule
 from threading import Timer
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from .mqtt_service import MqttService
 from ..config.config_handler import ConfigHandler
-from ..config.models.schedule_config import Slot
+from ..config.models.schedule_config import ScheduleConfig, Slot
 
+if TYPE_CHECKING:
+    from .service_coordinator import ServiceCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,7 @@ class SchedulerService:
     This includes dispensing food, locking future dispensing and
     alerting of missed feeding events.
     """
-    def __init__(self, schedule_config_handler: ConfigHandler, mqtt_service: MqttService):
+    def __init__(self, schedule_config_handler: ConfigHandler, coordinator: ServiceCoordinator):
         """
         Initializes the SchedulerService
 
@@ -43,7 +46,7 @@ class SchedulerService:
             The MQTT service instance for backend communication.
         """
         self._schedule_config_handler = schedule_config_handler
-        self._mqtt_service = mqtt_service
+        self._coordinator = coordinator
 
         # Mapping of the integer day representation
         # to the one used by the schedule library.
@@ -77,6 +80,28 @@ class SchedulerService:
             logger.info("Schedule reloaded successfully.")
         else:
             logger.warning("No schedule configuration to load.")
+
+    def handle_schedule_attribute_update(self, schedule_data: Dict[str, Any]):
+        """
+        Handles incoming schedule data received via MQTT.
+        This method is to be called by the ServiceCoordinator.
+
+        Args:
+            schedule_data (Dict[str, Any]): Dict containing the schedule data.
+        """
+        if not schedule_data:
+            logger.warning("Received empty schedule data during attribute update. Clearing schedule.")
+            new_schedule_config = ScheduleConfig(slots=[])
+        else:
+            try:
+                new_schedule_config = ScheduleConfig(**schedule_data)
+            except ValidationError as e:
+                logger.error(f"Failed to validate received schedule data: {e}. Schedule not updated.")
+                return
+
+        self._schedule_config_handler.settings = new_schedule_config
+        self._schedule_config_handler.save()
+        self.reload_schedule()
 
     def _schedule_feed_slot(self, slot: Slot):
         """
@@ -136,7 +161,7 @@ class SchedulerService:
 
         if dispensing_locked:
             try:
-                self._mqtt_service.publish_telemetry({"feed_alert": "missed_feed"})
+                self._coordinator.publish_telemetry({"feed_alert": "missed_feed"})
             except Exception as e:
                 logger.error(f"Failed to publish 'missed_feed' telemetry: {e}")
 
@@ -163,7 +188,7 @@ class SchedulerService:
                 missed_feed_timer.cancel()
                 missed_feed_timer = None
         try:
-            self._mqtt_service.publish_telemetry({"cat_detection_status": "cat_detected"})
+            self._coordinator.publish_telemetry({"cat_detection_status": "cat_detected"})
         except Exception as e:
             logger.error(f"Failed to publish cat_detected telemetry: {e}")
 
