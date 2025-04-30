@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, Dict, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:  # Pyright workaround
     from .mqtt_service import MqttService
@@ -10,12 +10,32 @@ if TYPE_CHECKING:  # Pyright workaround
 
 logger = logging.getLogger(__name__)
 
+class ServiceNotInitializedError(Exception):
+    """
+    Raised when a call to a service that has not been
+    initialized is made. See set_services.
+    """
+
 class ServiceCoordinator:
     """
     Coordinates interactions between different services to
     prevent circular dependencies.
     """
-    def __init__(self, mqtt_service: MqttService, scheduler_service: SchedulerService):
+    def __init__(self):
+        """
+        Initializes the ServiceCoordinator, without references 
+        to the service objects. Call set_services after initializing
+        the services.
+        """
+        self._mqtt_service: Optional[MqttService] = None
+        self._scheduler_service: Optional[SchedulerService] = None
+
+    def set_services(self, mqtt_service: MqttService, scheduler_service: SchedulerService):
+        """
+        Called after intialization to provide a reference to the 
+        service objects. Must be done this way as the services 
+        need a reference to a ServiceCoordinator.
+        """
         self._mqtt_service = mqtt_service
         self._scheduler_service = scheduler_service
     
@@ -26,6 +46,9 @@ class ServiceCoordinator:
         Args:
             attributes (Dict[str, Any]): Dictionary of received attributes.
         """
+        if self._scheduler_service is None:
+            raise ServiceNotInitializedError("SchedulerService not initialized. See ServiceCoordinator.set_services")
+
         if "schedule" in attributes:
             try:
                 schedule_data = attributes.get("schedule")
@@ -43,6 +66,9 @@ class ServiceCoordinator:
         Args:
             telemetry_data (Dict[str, Any]): A dict of telemetry data to publish.
         """
+        if self._mqtt_service is None:
+            raise ServiceNotInitializedError("MqttService not initialized. See ServiceCoordinator.set_services")
+
         try:
             self._mqtt_service.publish_telemetry(telemetry_data)
         except Exception as e:
