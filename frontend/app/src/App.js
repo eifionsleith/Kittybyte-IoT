@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import SignIn from './components/Auth/SignIn';
+import SignUp from './components/Auth/SignUp';
 import Home from './components/Dashboard/Home';
 import ScheduleOverview from './components/Schedule/ScheduleOverview';
 import ScheduleDetails from './components/Schedule/ScheduleDetails';
@@ -16,6 +16,8 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<SignIn />} />
+        <Route path="/login" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/pair" element={<BluetoothConnect />} />
         <Route path="/calibration" element={<Calibration />} />
         <Route path="/home" element={<Home />} />
