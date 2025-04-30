@@ -46,22 +46,18 @@ export default function ScheduleDetails() {
           <div key={schedule.id} style={{ 
             border: '1px solid #ddd', 
             borderRadius: '8px', 
-            padding: '1rem', 
-            marginBottom: '1rem' 
+            padding: '16px', 
+            marginBottom: '16px' 
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1px' }}>
               <h3 style={{ margin: 0 }}>Feed Schedule {schedule.id}</h3>
               {schedules.length > 1 && (
                 <button 
                   type="button" 
+                  className='removebutton'
                   onClick={() => deleteSchedule(schedule.id)}
-                  style={{ background: '007bff', 
-                    color: 'white', 
-                    border: 'none',
-                    borderRadius: '4px', 
-                    padding: '0.25rem 0.5rem' }}
                 >
-                  Delete
+                  x
                 </button>
               )}
             </div>
@@ -70,7 +66,6 @@ export default function ScheduleDetails() {
             <select 
               value={schedule.foodAmount} 
               onChange={e => updateSchedule(schedule.id, 'foodAmount', Number(e.target.value))}
-              style={{ marginBottom: '1rem', width: '100%', padding: '0.5rem' }}
             >
               {[...Array(20)].map((_, i) => (
                 <option key={i} value={(i + 1) * 5}>{(i + 1) * 5}g</option>
@@ -82,20 +77,15 @@ export default function ScheduleDetails() {
               type="time" 
               value={schedule.feedTime} 
               onChange={e => updateSchedule(schedule.id, 'feedTime', e.target.value)}
-              style={{ marginBottom: '1rem',
-                 width: '100%', 
-                 padding: '0.5rem',
-                 }}
             />
 
-            <div style={{ marginTop: '0.5rem', textAlign: 'left', display: 'flex', alignItems: 'flex-start' }}>
+            <div style={{ marginTop: '1px', textAlign: 'left', display: 'flex', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
               type="checkbox"
               id={`repeat-${schedule.id}`}
               checked={schedule.repeat}
               onChange={e => updateSchedule(schedule.id, 'repeat', e.target.checked)}
-              style={{ margin: '0 8px 0 0' }}
               />
               <label htmlFor={`repeat-${schedule.id}`}>Repeat daily</label>
               </div>
@@ -109,42 +99,23 @@ export default function ScheduleDetails() {
         <button 
           type="button" 
           onClick={addNewSchedule}
-          style={{ 
-            background: '#007bff', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px', 
-            padding: '0.5rem 1rem', 
-            marginBottom: '1rem' 
-          }}
         >
           +
         </button>
 
-        <div style={{ marginTop: '1rem' }}>
+        <div style={{ marginTop: '10px' }}>
           <button 
             type="submit"
-            style={{ 
-              background: '#007bff', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '4px', 
-              padding: '0.5rem 1rem' 
-            }}
           >
             Save Feed Schedules
           </button>
-        </div>
+          </div>
       </form>
 
       <button 
         style={{ 
-          marginTop: '1rem', 
-          backgroundColor: '#28a745', 
-          color: 'white', 
-          border: 'none', 
-          borderRadius: '4px', 
-          padding: '0.5rem 1rem' 
+          marginTop: '10px', 
+          backgroundColor: '#28a745',  
         }} 
         onClick={handleFeedNow}
       >
