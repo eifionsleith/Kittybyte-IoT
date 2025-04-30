@@ -162,8 +162,10 @@ class CatDetectionService:
             return class_names
         except FileNotFoundError:
             logger.error(f"CatDetectionService could not find the class names file at '{DEFAULT_CLASS_FILE_PATH}'")
+            raise
         except Exception:
             logger.exception("CatDetectionService encountered an unexpected exception reading class names.")
+            raise
 
     def _initialize_camera(self):
         """
