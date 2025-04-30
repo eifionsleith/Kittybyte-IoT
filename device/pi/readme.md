@@ -14,4 +14,5 @@
 - Implement logic for dispensing - take distance reading, move motor X turns, take another reading, report success
 - Implement logic for AI detection unlocking dispensing
 - Implement backend logging for feeding events, inc. video or image(s)
+- Provisioning logic, stretch goal
 
