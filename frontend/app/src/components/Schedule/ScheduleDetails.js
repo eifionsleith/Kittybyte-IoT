@@ -90,9 +90,6 @@ export default function ScheduleDetails() {
               <label htmlFor={`repeat-${schedule.id}`}>Repeat daily</label>
               </div>
             </div>
-
-
-
           </div>
         ))}
 
@@ -109,18 +106,24 @@ export default function ScheduleDetails() {
           >
             Save Feed Schedules
           </button>
-          </div>
+        </div>
       </form>
 
-      <button 
-        style={{ 
-          marginTop: '10px', 
-          backgroundColor: '#28a745',  
-        }} 
-        onClick={handleFeedNow}
-      >
-        Feed Now
-      </button>
+      <div style={{ marginTop: '20px', marginBottom: '70px' }}>
+        <button 
+          style={{ 
+            backgroundColor: '#28a745',
+            padding: '10px 20px',
+            borderRadius: '4px',
+            border: 'none',
+            color: 'white',
+            fontWeight: 'bold'
+          }} 
+          onClick={handleFeedNow}
+        >
+          Feed Now
+        </button>
+      </div>
       
       <Navbar />
     </div>
