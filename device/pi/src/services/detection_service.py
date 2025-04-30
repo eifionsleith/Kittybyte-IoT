@@ -56,7 +56,7 @@ class AIWorker:
             self._net = cv2.dnn_DetectionModel(self._weights_path, self._config_path) # pyright: ignore
             self._net.setInputSize(320, 320) # pyright: ignore
             self._net.setInputScale(1.0 / 127.5) # pyright: ignore
-            self._net.setMean((127.5, 127.5, 127.5)) # pyright: ignore
+            self._net.setInputMean((127.5, 127.5, 127.5)) # pyright: ignore
             self._net.setInputSwapRB(True) # pyright: ignore
         except Exception as e:
             logger.error(f"AI model failed to load: {e}")
@@ -80,7 +80,7 @@ class AIWorker:
                                                        confThreshold=CONFIDENCE_THRESHOLD,
                                                        nmsThreshold=NMS_THRESHOLD)
                     cat_detected = False
-                    if class_ids is not None and self._target_class_id in class_ids.flatten():
+                    if class_ids is not None and self._target_class_id in class_ids:
                         cat_detected = True
                     self._put_overwrite(self._detection_result_queue, (cat_detected, frame))
                 
