@@ -18,9 +18,21 @@ button {
   font-size: 1rem;
   cursor: pointer;
 }
+.removebutton {
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+}
 
 button:hover {
   background-color: #0056b3;
+}
+.removebutton:hover{
+  background-color: red;
 }
 
 input, select {
