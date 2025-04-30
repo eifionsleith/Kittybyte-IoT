@@ -6,8 +6,8 @@ import schedule
 from threading import Timer
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from ..config.config_handler import ConfigHandler
-from ..config.models.schedule_config import ScheduleConfig, Slot
+from config.config_handler import ConfigHandler
+from config.models.schedule_config import ScheduleConfig, Slot
 
 if TYPE_CHECKING:
     from .service_coordinator import ServiceCoordinator
