@@ -42,3 +42,7 @@ def startup_event():
 def default_route():
     return {"message": "😼"}
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) # You can change the host and port as needed
+
